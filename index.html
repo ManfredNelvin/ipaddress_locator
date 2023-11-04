@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Location and Postal Offices</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      color: #333;
+    }
+    #getInfoButton {
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    #getInfoButton:hover {
+      background-color: #0056b3;
+    }
+    #search-box {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .post-office-card {
+      background-color: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      text-align: left;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>User Location and Postal Offices</h1>
+  <div>
+    Your current IP address is: <span id="ip-address"></span>
+  </div>
+  <iframe id="map-iframe" src="" width="360" height="270" frameborder="0" style="border:0"></iframe>
+  <button id="getInfoButton">Get Post Office Details</button>
+  <div>
+    <strong>Location Information:</strong>
+    <p>Latitude: <span id="latitude"></span></p>
+    <p>Longitude: <span id="longitude"></span></p>
+    <p>Timezone: <span id="timezone"></span></p>
+    <p>Pincode: <span id="pincode"></span></p>
+  </div>
+  <input type="text" id="search-box" placeholder="Search Post Offices">
+  <div id="post-offices"></div>
+
+  <script>
+    async function getIPAddress() {
+      const response = await fetch('https://api64.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    }
+
+    async function getUserLocation(ipAddress) {
+      const response = await fetch(`https://ipapi.co/${ipAddress}/json/`);
+      const data = await response.json();
+      return data;
+    }
+
+    async function getPostOffices(pincode) {
+      const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await response.json();
+      return data[0].PostOffice;
+    }
+
+    async function showPostOffices() {
+      const pincode = document.getElementById('pincode').textContent;
+      const postOffices = await getPostOffices(pincode);
+
+      const postOfficesContainer = document.getElementById('post-offices');
+      postOfficesContainer.innerHTML = '';
+
+      postOffices.forEach((postOffice) => {
+        const postOfficeCard = document.createElement('div');
+        postOfficeCard.classList.add('post-office-card');
+        postOfficeCard.innerHTML = `
+          <strong>Name:</strong> ${postOffice.Name}<br>
+          <strong>Branch Type:</strong> ${postOffice.BranchType}<br>
+          <strong>Delivery Status:</strong> ${postOffice.DeliveryStatus}<br>
+          <strong>District:</strong> ${postOffice.District}<br>
+          <strong>Division:</strong> ${postOffice.Division}
+        `;
+        postOfficesContainer.appendChild(postOfficeCard);
+      });
+    }
+
+    async function main() {
+      const ipAddress = await getIPAddress();
+      document.getElementById('ip-address').innerText = ipAddress;
+
+      const userLocation = await getUserLocation(ipAddress);
+      document.getElementById('latitude').innerText = userLocation.latitude;
+      document.getElementById('longitude').innerText = userLocation.longitude;
+      document.getElementById('timezone').innerText = userLocation.timezone;
+      document.getElementById('pincode').innerText = userLocation.postal;
+      const iframe = document.getElementById('map-iframe');
+      const src = `https://maps.google.com/maps?q=${userLocation.latitude},${userLocation.longitude}&z=15&output=embed`;
+      iframe.src = src;
+      // Attach an event listener to the "Get Location Info" button
+      document.getElementById('getInfoButton').addEventListener('click', showPostOffices);
+
+      // Search and filter postal offices
+      const searchBox = document.querySelector('#search-box');
+      searchBox.addEventListener('input', () => {
+        const filter = searchBox.value.toLowerCase();
+        const postOfficeCards = document.querySelectorAll('.post-office-card');
+
+        postOfficeCards.forEach((postOfficeCard) => {
+          const text = postOfficeCard.innerText.toLowerCase();
+          if (text.includes(filter)) {
+            postOfficeCard.style.display = 'block';
+          } else {
+            postOfficeCard.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    main();
+  </script>
+</body>
+</html>
